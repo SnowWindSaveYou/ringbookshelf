@@ -2,6 +2,7 @@
 <html>
     <head>
         <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+        <script type="text/javascript" src="./color-maker.js"></script>
         <script type="text/javascript">
             const prefix = "slide-";
             const left_max_angle = 300, right_max_angle = 120;
@@ -18,7 +19,9 @@
             }
             var transformBox = (id,x,y,angle)=>{
                 let weight = 100- Math.round(Math.abs(x_ori-x)/max_count);
-                $('#'+id).css({'transform' : ' translate3d('+x+'px, '+y+'px, 0) rotate(' + angle + 'deg)  scale('+ (weight>=92? weight/90 : weight/100)+')'});
+                let scale = weight>=92? weight/90 : weight/100;
+                scale *= (document.body.clientWidth )/1280
+                $('#'+id).css({'transform' : ' translate3d('+x+'px, '+y+'px, 0) rotate(' + angle + 'deg)  scale('+ scale+')'});
                 $('#'+id).css({'z-index' : weight});
             };
             var appendContent = (box_id,content_id)=>{
@@ -34,7 +37,7 @@
                 let result = calcPos(angle);
                 state[id] = {};
                 state[id]["angle"] = angle*180/Math.PI;
-                $(".slides_container").append('<div id = "'+id+'" class="slide-box" style="background-color: '+getRandColor()+';"><div class="slide-txt">Test Text</div></div>'); 
+                $(".slides_container").append('<div id = "'+id+'" class="slide-box"><div class="slide-txt">Test Text</div></div>'); 
                 $('#'+id).css({'background-image' : "linear-gradient(to bottom right, "+getRandColor()+", "+getRandColor()+" )"});
                 transformBox(id,result.x,result.y,angle*180/Math.PI);
             }
@@ -110,7 +113,7 @@
                 return color;
             }
             var loadSlides = ()=>{
-                x_ori = $("#circle_center").position().left-110, y_ori = $("#circle_center").position().top*1.2;
+                x_ori = $("#circle_center").position().left-110, y_ori = $("#circle_center").position().top;
                 r = x_ori;
 
                 for(let i = 0;i<max_count;i++){//插入环，顺序插入内容
@@ -148,6 +151,10 @@
                     clearInterval(left_timestrap);
                 }) 
 
+                $(window).resize(function() {
+                    x_ori = $("#circle_center").position().left-110, y_ori = $("#circle_center").position().top;
+                    r = x_ori;
+                })
             }
 
         </script>
