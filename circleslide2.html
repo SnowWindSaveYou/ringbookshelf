@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://cdn.staticfile.org/jquery/1.10.2/jquery.min.js"></script>
+        <script type="text/javascript">
+            const prefix = "slide-";
+            const left_max_angle = 300, right_max_angle = 120;
+            var left_timestrap,right_timestrap;
+            var r = 500, max_count= 28;
+            var  x_ori = 500, y_ori = 500;
+            var content = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16];
+            var left_id = 0, right_id = content.length-1;
+            var state = {};
+            var calcPos = (arcangle)=>{//按照角度计算元素的位置
+                x = r*Math.sin(arcangle);
+                y = r*Math.cos(arcangle);
+                return {"x":x+ x_ori,"y":y_ori-y}
+            }
+            var transformBox = (id,x,y,angle)=>{
+                let weight = 100- Math.round(Math.abs(x_ori-x)/max_count);
+                $('#'+id).css({'transform' : ' translate3d('+x+'px, '+y+'px, 0) rotate(' + angle + 'deg)  scale('+ (weight>=92? weight/90 : weight/100)+')'});
+                $('#'+id).css({'z-index' : weight});
+            };
+            var appendContent = (box_id,content_id)=>{
+                let id = 'slide-'+box_id;
+                if(content_id== state[id]["content"]) return;
+                state[id]["content"] =content_id;
+                $('#'+id+" .box-content").remove();
+                $('#'+id).append("<div class = 'box-content'>"+content[content_id]+"</div>")
+            }
+            var appendSlide= (index)=>{
+                let id = 'slide-'+index;
+                let angle = index* Math.PI*2/max_count;//角弧度
+                let result = calcPos(angle);
+                state[id] = {};
+                state[id]["angle"] = angle*180/Math.PI;
+                $(".slides_container").append('<div id = "'+id+'" class="slide-box" style="background-color: '+getRandColor()+';"><div class="slide-txt">Test Text</div></div>'); 
+                $('#'+id).css({'background-image' : "linear-gradient(to bottom right, "+getRandColor()+", "+getRandColor()+" )"});
+                transformBox(id,result.x,result.y,angle*180/Math.PI);
+            }
+
+            var getTransform = (id )=>{ 
+                return {"deg":state[id]["angle"]};  
+                /*直接获取transform rotate旋转角度的度数，得到的是矩阵matrix(a,b,c,d,e,f)，
+                * 当a=b||-a=b,0<=deg<=180 
+                * 当-a+b=180,180<=deg<=270 
+                * 当a+b=180,270<=deg<=360 
+                * 
+                * 当0<=deg<=180,deg=d; 
+                * 当180<deg<=270,deg=180+c; 
+                * 当270<deg<=360,deg=360-(c||d); */
+                /* //有问题，会莫名将角度置于0
+                let translates = $("#"+id).css('transform').substr(7);
+                let result = translates.match(/\(([^)]*)\)/);
+                let matrix=result?result[1].split(','):translates.split(',');
+                let aa=Math.round(180*Math.asin(matrix[0])/ Math.PI);  
+                let bb=Math.round(180*Math.acos(matrix[1])/ Math.PI);  
+                let cc=Math.round(180*Math.asin(matrix[2])/ Math.PI);  
+                let dd=Math.round(180*Math.acos(matrix[3])/ Math.PI);  
+                let deg=0;  
+                if(aa==bb||-aa==bb){  
+                    deg=dd;  
+                }else if(-aa+bb==180){  
+                    deg=180+cc;  
+                }else if(aa+bb==180){  
+                    deg=360-cc||360-dd;  
+                }  
+                //console.log(aa,bb,cc,dd,deg)
+                return {"deg":deg>=360?0:deg,"x":matrix[4],"y":matrix[5]};  */
+
+            }
+            var doRotate = (angle)=>{
+                for(let i = 0;i<max_count;i++){ // 每个元素角度自加完成旋转
+                    let id = "slide-"+i
+                    let result = getTransform(id);
+                    let degree = result.deg+ (angle?angle:0.1);
+                    if(degree>360){
+                        degree-=360;
+                    }else if(degree<0){
+                        degree+=360;
+                    }
+                    state[id]["angle"] = degree;
+                    
+                    let pos = calcPos(degree*Math.PI/180);
+                    //旋转时将元素插入即将进入屏幕的格子
+                    if(angle>0 //顺时针，左边出现末尾元素
+                        && state[id]["angle"] +(angle?angle:0.5) >=left_max_angle 
+                        && state[id]["angle"] <left_max_angle ){
+                        let next_id = "slide-"+(i+1<max_count-1?i+1:0);//下一个盒子的id
+                        let cur_id = (state[next_id]["content"]-1>=0? state[next_id]["content"]-1:content.length-1);//下一个盒子内容前面的内容
+                        console.log("appendContent + ",id,cur_id)
+                        appendContent(i,cur_id);
+                        
+                    }else if(angle<0 //逆时针，右边出现顺序元素
+                        && state[id]["angle"]+(angle?angle:-0.5)  <= right_max_angle 
+                        && state[id]["angle"] > right_max_angle  ){
+                        let last_id = "slide-"+(i-1>=0?i-1:max_count-1);//上一个盒子的id
+                        let cur_id = (state[last_id]["content"]+1<=content.length-1? state[last_id]["content"]+1:0);//上一个盒子内容后面的内容
+                        console.log("appendContent - ",id,cur_id)
+                        appendContent(i,cur_id);
+                    }
+                    transformBox(id,pos.x,pos.y,degree);
+                }
+            }
+            var getRandColor = ()=>{
+                var color = "#";
+                for(let i=0;i<6;i++){
+                    color += parseInt(Math.random() *6+10).toString(16);
+                }
+                return color;
+            }
+            var loadSlides = ()=>{
+                x_ori = $("#circle_center").position().left-110, y_ori = $("#circle_center").position().top*1.2;
+                r = x_ori;
+
+                for(let i = 0;i<max_count;i++){//插入环，顺序插入内容
+                    appendSlide(i);
+                    if(state["slide-"+i]["angle"]<=right_max_angle && i<content.length){
+                        appendContent(i,i);
+                        right_id = i;
+                    }
+
+                }
+                var j = 2;
+                for(let i = max_count-1;i>=0;i--){//从环末逆序插入内容
+                    if(state["slide-"+i]["angle"]<=left_max_angle){
+                        break;
+                    }
+                    appendContent(i, content[content.length-j]);
+                    j+=1;
+                }
+                left_id = content.length-j;
+                //$("#circle_center").css({'transform' : ' translate3d('+x_ori+'px, '+y_ori+'px, 0)'});
+                $("#left-screen-btn").mouseenter(()=>{
+                    left_timestrap = setInterval( ()=> {
+                        doRotate(-1.5);
+                    },100);
+                })
+                $("#left-screen-btn").mouseleave(function(){
+                    clearInterval(left_timestrap);
+                })   
+                $("#right-screen-btn").mouseenter(()=>{
+                    left_timestrap = setInterval( ()=> {
+                        doRotate(1.5);
+                    },100);
+                })
+                $("#right-screen-btn").mouseleave(function(){
+                    clearInterval(left_timestrap);
+                }) 
+
+            }
+
+        </script>
+        <style type="text/css">
+            .item{
+                transform: translate3d(234.737px, 599.34px, 0px) rotate(361.575deg) scale(0.99055);
+            }
+            .slide-txt{
+                position: absolute;
+                width: 400px;
+                height: 220px;
+                left: -90px;
+                top: -310px;
+                pointer-events: none;
+                -webkit-transform: rotate(-90deg);
+                -moz-transform: rotate(-90deg);
+                -ms-transform: rotate(-90deg);
+                transform: rotate(-90deg);
+                transform-origin: center center;
+            }
+            .slide-box{
+                position:absolute;
+                width: 220px;
+                height: 310px;
+                background-color: burlywood;
+                transform-origin: center center;
+
+            }
+            body{
+                overflow: hidden;
+            }
+            #circle_center{
+                width:10;
+                height: 10;
+                position: fixed;
+                left: 50%;
+                bottom: 0;
+            }
+            #left-screen-btn{
+                position: absolute;
+                width: 20%;
+                height: 100%;
+                top: 0;
+                left: 0;
+                background-color: aqua;
+            }
+            #right-screen-btn{
+                position: absolute;
+                width: 20%;
+                height: 100%;
+                top: 0;
+                right: 0;
+                background-color: bisque;
+            }
+
+
+        </style>
+    </head>
+
+    <body onload="loadSlides()">
+        <div class="container">
+            <div id="left-screen-btn"></div>
+            <div id="right-screen-btn"></div>
+            <div id = "circle_center" onclick="doRotate(3);">O</div>
+            <div class="slides_container">
+
+                    <div style="clear: both;"></div>
+            </div>
+        </div>
+    </body>
+
+</html>
