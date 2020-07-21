@@ -1,0 +1,36 @@
+
+.tester{
+    position:absolute;
+    will-change: transform;
+    -moz-user-select: none; /*火狐*/
+    -webkit-user-select: none;  /*webkit浏览器*/
+    -ms-user-select: none;   /*IE10*/
+    -khtml-user-select: none; /*早期浏览器*/
+    user-select: none;
+    transform-origin: center center;
+}
+.RingSlideText{
+    position: absolute;
+    width: 400px;
+    height: 220px;
+    left: -30px;
+    top: -335px;
+    pointer-events: none;
+    -webkit-transform: rotate(-90deg);
+    -moz-transform: rotate(-90deg);
+    -ms-transform: rotate(-90deg);
+    transform: rotate(-90deg);
+    transform-origin: center center;
+    color: #bcbbc5;
+}
+.RingSlideButton{
+    width: 220px;
+    height: 310px;
+    background-color: #462fca;
+    color: #ffffff;
+}
+.RingSlideButton h1{
+    position: absolute;
+    left: 10px;
+    word-break: break-word;
+}

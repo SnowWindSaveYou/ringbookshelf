@@ -1,0 +1,2 @@
+>生成模板：npx create-react-app demo --template typescript
+>如在已有项目中使用typescript，需要手动安装' typescript @types/react @types/react-dom'（使用@types/前缀表示我们额外要获取React和React-DOM的声明文件），然后在根目录下创建一个 tsconfig.json 文件，改后缀为 .tsx
