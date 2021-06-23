@@ -2,6 +2,7 @@ import React from 'react';
 import * as ReactDom from 'react-dom';
 import RingSlideBox from './sub-components/ring_slide_box';
 import './ring_slide.css';
+import { Radio } from '@material-ui/core';
 
 interface Props{
 }
@@ -12,7 +13,7 @@ interface State{
     radius:number;
 }
 
-const SLIDE_COUNT_NUM = 34;
+const SLIDE_COUNT_NUM = 38;
 const LEFT_BOUND = 270;
 const RIGHT_BOUND = 90;
 const SLIDE_WIDTH = 220;
@@ -50,10 +51,11 @@ class RingSlide extends React.Component<Props,State>{
     dragStartHandle = (event:any)=>{
         clearInterval(this.drag_interval);
         this.last_angle = Math.atan2(event.clientY-this.state.y_ori,event.clientX-this.state.x_ori);
+        this.cur_angle =  this.last_angle;
         this.flag_drag = true;
         let inertia:number = 1;
         let moved_angle:number = 0;
-
+        // console.log("last",this.last_angle)
         this.drag_interval = setInterval( ()=> {
             if(this.flag_drag==false){
                 this.rotateRing(moved_angle*inertia);
@@ -73,6 +75,7 @@ class RingSlide extends React.Component<Props,State>{
     dragMoveHandle = (event:any)=>{
         if(this.flag_drag==true){
             this.cur_angle = Math.atan2(event.clientY-this.state.y_ori,event.clientX-this.state.x_ori);
+            // console.log("cur",this.cur_angle )
         }
     }
     dragEndHandle = (event:any)=>{
@@ -84,15 +87,16 @@ class RingSlide extends React.Component<Props,State>{
     resetCircle = ()=>{ // 适配屏幕
         this.setState({
             x_ori:document.body.clientWidth /2, // 屏幕宽减去block宽/2,有点歪但问题不大√
-            y_ori:document.body.clientHeight*1.6,
+            y_ori:document.body.clientHeight*1.5,
             // radius:document.body.clientHeight*1.2>250? document.body.clientHeight*1.2:250
-            radius:document.body.clientHeight*1.2
+            radius:document.body.clientHeight*1.0
         });
     }
     calcPos = (arcangle:number)=>{//按照弧度角计算元素的位置
         let x:number = this.state.radius*Math.sin(arcangle);
-        let y:number = this.state.radius*Math.cos(arcangle);
-        return {"x":x+ this.state.x_ori,"y":this.state.y_ori-y}
+        let y:number =this.state.radius*Math.cos(arcangle);
+        let z:number = Math.abs(Math.round(Math.cos(arcangle)*100));
+        return {"x":x+ this.state.x_ori,"y":this.state.y_ori-y,"z":z}
     }
     loadSlides = ()=>{//TODO 
         let slides_state:[number,string,any][] = []; // angle ,color content
@@ -106,7 +110,7 @@ class RingSlide extends React.Component<Props,State>{
         this.setState({ slides_state: slides_state});
     }
     rotateRing = (angle:number=0)=>{
-        if(angle==0)return;
+        if(angle==0 )return;
         let slides_state = this.state.slides_state;
         slides_state?.forEach(element => {
             element[0]+=angle;
@@ -154,19 +158,19 @@ class RingSlide extends React.Component<Props,State>{
                 {
                     this.state.slides_state?.map((item,index)=>{
                             // 计算元素位置属性，调参半天不建议修改
-                            let xy = this.calcPos(item[0]);
-                            // let weight = 100- Math.round(Math.abs(this.state.x_ori-xy.x)/30);
-                            let weight = Math.abs(this.state.x_ori-xy.x)>0.1?100- Math.floor(Math.log2(Math.abs((this.state.x_ori-xy.x)/10)*6)):100;
-                            // let weight = 100- Math.floor(Math.pow((this.state.x_ori-xy.x)/10,2)); //不能小数差评
-                            let scale = weight>=95? weight/95 : weight/100;// 中间的相对放大
-                            scale *= (this.state.radius)/850; 
-                            let x:number = xy.x - (SLIDE_WIDTH*scale/2);
-                            let y:number = weight>97?xy.y*0.95:xy.y; // 把中间的往上放点
+                            let xyz = this.calcPos(item[0]);
+                            let z:number = xyz.z; // 把中间的往上放点
+                            let scale:number = (z/100);
+                            let x:number = (xyz.x +((this.state.x_ori-xyz.x)/100)**3/5)- (SLIDE_WIDTH*scale/2);//把较远的向中间偏移
+                            let pad:number = (1/(xyz.y-(this.state.y_ori-this.state.radius-5)));
+                            scale+=(pad)/2;
+                            scale*=0.9;
+                            let y:number = (xyz.y-pad*100);
                             return(
                                 <div key={index} className="RingSlideBlock"
-                                    style= {{transform:'translate3d('+x+'px, '+y+'px, 0) '+'scale('+ scale+')',zIndex: weight? weight:0}}>
+                                    style= {{transform:'translate3d('+x+'px, '+y+'px, 0) '+'scale('+ scale+')',zIndex: z? z:0}}>
                                     <div style= {{transform: 'rotate(' + (item[0]*180/Math.PI)+ 'deg) ',transformOrigin:'center'}}>
-                                        <RingSlideBox title="TEST" description="qwertyuilkjhgfdsdfghjhgf" slide_id={index}
+                                        <RingSlideBox title="TEST" description={"qwertyuilkjhgfdsdfghjhgf"+pad} slide_id={index}
                                         background={item[1]} />
                                     </div>
                                 </div>
